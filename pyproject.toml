@@ -6,5 +6,6 @@ dependencies = [
   "flask>=3.1",
   "supabase",
   "python-dotenv>=1.0.0",
-  "flask_cors"
+  "flask_cors",
+  "gunicorn"
 ]
