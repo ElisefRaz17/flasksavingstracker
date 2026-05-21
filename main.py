@@ -45,7 +45,6 @@ def home():
 
 @app.route("/data")
 def get_data():
-    # Replace 'your_table_name' with your actual table
     try:
         response = supabase.table("Users").select("*").execute()
         return jsonify(response.data)
