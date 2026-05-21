@@ -51,3 +51,7 @@ def get_data():
         return jsonify(response.data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+app = create_app()
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5001)
