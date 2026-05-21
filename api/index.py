@@ -18,9 +18,28 @@ def handle_exception(e):
 # CREATE
 @app.route('/api/users', methods=['POST'])
 def create_item():
-    data = request.get_json()
-    response = supabase.table("Users").insert(data).execute()
-    return jsonify(response.data), 201
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+    full_name = data.get('full_name', '')
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
+
+    try:
+        # Register the user in Supabase Auth
+        # You can pass additional metadata like full_name into the data dictionary
+        user = supabase.auth.sign_up({
+            "email": email,
+            "password": password,
+            "options": {
+                "data": {"full_name": full_name}
+            }
+        })
+        
+        return jsonify({"message": "User registered successfully!", "user": user.user.id}), 201
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 # READ (All)
 @app.route('/api/users', methods=['GET'])
