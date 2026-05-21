@@ -4,7 +4,7 @@ from api.database import supabase
 
 app = Flask(__name__)
 
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:4200"}})
+CORS(app)
 
 
 # CREATE
