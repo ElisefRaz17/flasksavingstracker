@@ -1,14 +1,22 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from database import supabase
+import logging
 
 app = Flask(__name__)
 
 CORS(app)
 
+logging.basicConfig(level=logging.ERROR)
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Pass the actual error message to the logs
+    app.logger.error(f"Unhandled Exception: {e}", exc_info=True)
+    # Return a clean JSON response instead of a generic 500
+    return jsonify(error="Internal Server Error", message=str(e)), 500
 # CREATE
-@app.route('/api/users/create', methods=['POST'])
+@app.route('/api/users', methods=['POST'])
 def create_item():
     data = request.get_json()
     response = supabase.table("Users").insert(data).execute()
