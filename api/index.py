@@ -10,7 +10,7 @@ CORS(app)
 # CREATE
 @app.route('/api/users', methods=['POST'])
 def create_item():
-    data = request.json
+    data = request.get_json()
     response = supabase.table("Users").insert(data).execute()
     return jsonify(response.data), 201
 
@@ -31,7 +31,7 @@ def get_item(item_id):
 # UPDATE
 @app.route('/api/users/<item_id>', methods=['PUT'])
 def update_item(item_id):
-    data = request.json
+    data = request.get_json()
     response = supabase.table("Users").update(data).eq("id", item_id).execute()
     return jsonify(response.data), 200
 
