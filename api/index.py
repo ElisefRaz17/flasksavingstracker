@@ -8,7 +8,7 @@ CORS(app)
 
 
 # CREATE
-@app.route('/api/users', methods=['POST'])
+@app.route('/api/users/create', methods=['POST'])
 def create_item():
     data = request.get_json()
     response = supabase.table("Users").insert(data).execute()
