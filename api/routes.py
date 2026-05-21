@@ -3,7 +3,7 @@ from .supabase_client import supabase
 
 api_bp = Blueprint('api', __name__)
 
-@api_bp.route('/items', methods=['POST'])
+@api_bp.route('/users/create', methods=['POST'])
 def create_item():
     data = request.json
     response = supabase.table('Users').insert(data).execute()
