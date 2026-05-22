@@ -58,9 +58,21 @@ def request_reset():
     # redirectTo must match your dashboard configuration
     res = supabase.auth.reset_password_for_email(
         email, 
-        {"redirect_to": "http://localhost:4200/reset-password"}
+        {"redirect_to": "http://localhost:4200/update-password"}
     )
     return jsonify({"message": "Reset email sent"}), 200
+@app.route('/api/update-password', methods=['POST'])
+def update_password():
+    # Supabase requires an active session to update the password
+    # In a Flask setup, you typically pass the access_token from the frontend
+    token = request.headers.get('Authorization').split("Bearer ")[1]
+    new_password = request.json.get('password')
+    
+    # Set the session before updating
+    supabase.auth.set_session(token)
+    res = supabase.auth.update_user({"password": new_password})
+    
+    return jsonify({"message": "Password updated successfully"}), 200
 
 # READ (All)
 @app.route('/api/users', methods=['GET'])
