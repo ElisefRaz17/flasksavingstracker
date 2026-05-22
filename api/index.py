@@ -40,7 +40,17 @@ def create_item():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
+@app.route('/api/login',methods=['POST'])
+def login():
+    data = request.get_json()
+    try:
+        response = supabase.auth.sign_in_with_password({
+            "email": data['email'],
+            "password": data['password'],
+        })
+        return jsonify(response.model_dump()), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 401
 # READ (All)
 @app.route('/api/users', methods=['GET'])
 def get_items():
