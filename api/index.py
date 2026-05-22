@@ -51,6 +51,17 @@ def login():
         return jsonify(response.model_dump()), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 401
+# Flask Route
+@app.route('/api/reset-password', methods=['POST'])
+def request_reset():
+    email = request.json.get('email')
+    # redirectTo must match your dashboard configuration
+    res = supabase.auth.reset_password_for_email(
+        email, 
+        {"redirect_to": "http://localhost:4200/reset-password"}
+    )
+    return jsonify({"message": "Reset email sent"}), 200
+
 # READ (All)
 @app.route('/api/users', methods=['GET'])
 def get_items():
