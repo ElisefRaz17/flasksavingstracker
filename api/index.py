@@ -70,16 +70,24 @@ def update_password():
     
     # Set the session before updating
     data = request.json
-    access_token = data.get('accessToken')
-    refresh_token = data.get('refresh_token')
     new_password = data.get('password')
-    if not access_token or not refresh_token:
-        return jsonify({"error": "Session tokens are required"}), 400
-    
-    supabase.auth.set_session(access_token,refresh_token)
-    res = supabase.auth.update_user({"password": new_password})
-    
-    return jsonify({"message": "Password updated successfully","data":res}), 200
+    auth_header = request.headers.get('Authorization')
+    access_token = auth_header.split(" ")[1] if auth_header else None
+    try:
+        # 1. Verify session and Update the password using Supabase Python client
+        response = supabase.auth.update_user(
+            {"password": new_password}, 
+            token=access_token # Pass the user's JWT from your Angular frontend
+        )
+        
+        # 2. Convert the UserResponse object to a JSON-serializable dictionary
+        # Note: If you are using Supabase-py <2.0, use response.dict() instead
+        response_dict = response.model_dump() 
+        
+        return jsonify({"success": True, "data": response_dict}), 200
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 400
 
 # READ (All)
 @app.route('/api/users', methods=['GET'])
