@@ -73,11 +73,15 @@ def update_password():
     new_password = data.get('password')
     access_token = request.headers.get('Authorization') # Extracted from the Angular request header
 
-    if not access_token:
-        return jsonify({"error": "No token provided"}), 401
-    supabase.auth.session().access_token = access_token.replace("Bearer ", "")
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({"error": "Missing or invalid authorization header"}), 401
+
+    access_token = auth_header.split(" ")[1]
     try:
         # 1. Verify session and Update the password using Supabase Python client
+        supabase.auth.set_session(access_token, "dummy-refresh-token")
+
         response = supabase.auth.update_user(
             {"password": new_password} )
         
