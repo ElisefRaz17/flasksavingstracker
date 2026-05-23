@@ -65,14 +65,19 @@ def request_reset():
 def update_password():
     # Supabase requires an active session to update the password
     # In a Flask setup, you typically pass the access_token from the frontend
-    token = request.headers.get('Authorization').split("Bearer ")[1]
-    new_password = request.json.get('password')
+    # token = request.headers.get('Authorization').split("Bearer ")[1]
+    # new_password = request.json.get('password')
     
     # Set the session before updating
-    supabase.auth.set_session(token)
+    data = request.json
+    access_token = data.get('accessToken')
+    refresh_token = data.get('refreshToken')
+    new_password = data.get('password')
+    
+    supabase.auth.set_session(access_token,refresh_token)
     res = supabase.auth.update_user({"password": new_password})
     
-    return jsonify({"message": "Password updated successfully"}), 200
+    return jsonify({"message": "Password updated successfully","data":res}), 200
 
 # READ (All)
 @app.route('/api/users', methods=['GET'])
