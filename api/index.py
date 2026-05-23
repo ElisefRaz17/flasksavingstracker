@@ -71,8 +71,10 @@ def update_password():
     # Set the session before updating
     data = request.json
     access_token = data.get('accessToken')
-    refresh_token = data.get('refreshToken')
+    refresh_token = data.get('refresh_token')
     new_password = data.get('password')
+    if not access_token or not refresh_token:
+        return jsonify({"error": "Session tokens are required"}), 400
     
     supabase.auth.set_session(access_token,refresh_token)
     res = supabase.auth.update_user({"password": new_password})
