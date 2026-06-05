@@ -83,7 +83,7 @@ def get_item(item_id):
 @app.route('/api/goals', methods=['POST'])
 def create_goal():
     data = request.json
-    response = supabase.table("goals").insert({
+    response = supabase.table("Goals").insert({
         "name": data['name'],
         "deadline": data.get('deadline'), # Optional
         "target_amount": data['target_amount']
@@ -94,7 +94,7 @@ def create_goal():
 @app.route('/api/deposit',methods=['POST'])
 def add_deposit():
     data = request.json
-    response = supabase.table("goals").insert({
+    response = supabase.table("Deposits").insert({
         "goal_id": data['goal_id'],
         "user_id":data['user_id'],
         "amount":data["amount"],
