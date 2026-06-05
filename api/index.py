@@ -86,7 +86,8 @@ def create_goal():
     response = supabase.table("Goals").insert({
         "name": data['name'],
         "deadline": data.get('deadline'), # Optional
-        "target_amount": data['target_amount']
+        "target_amount": data['target_amount'],
+        "user_id":data['user_id']
     }).execute()
     
     return jsonify(response.data), 201
