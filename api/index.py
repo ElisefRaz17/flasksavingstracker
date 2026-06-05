@@ -79,7 +79,7 @@ def get_item(item_id):
     if not response.data:
         return jsonify({"error": "Item not found"}), 404
     return jsonify(response.data[0]), 200
-@require_auth
+# @require_auth
 @app.route('/api/goals', methods=['POST'])
 def create_goal():
     data = request.json
