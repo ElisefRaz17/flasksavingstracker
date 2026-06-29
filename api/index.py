@@ -101,13 +101,26 @@ def create_goal():
         return jsonify(response.data), 201
     except Exception as e:
         return jsonify({"error":str(e)}), 400
-@require_auth
 @app.route('/api/goals', methods=['GET'])
 def get_goals():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Missing or invalid token"}), 401
+    
+    # 2. Extract the actual JWT string
+    jwt_token = auth_header.split(" ")[1]
+    supabase.postgrest.auth(jwt_token)
     response = supabase.table("Goals").select("*").execute()
     return jsonify(response.data), 200
 @app.route('/api/deposit', methods=['GET'])
 def get_deposits():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Missing or invalid token"}), 401
+    
+    # 2. Extract the actual JWT string
+    jwt_token = auth_header.split(" ")[1]
+    supabase.postgrest.auth(jwt_token)
     response = supabase.table("Deposits").select("*").execute()
     return jsonify(response.data), 200
 @require_auth
