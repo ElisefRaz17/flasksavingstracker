@@ -103,11 +103,11 @@ def create_goal():
         return jsonify({"error":str(e)}), 400
 @require_auth
 @app.route('/api/goals', methods=['GET'])
-def get_items():
+def get_goals():
     response = supabase.table("Goals").select("*").execute()
     return jsonify(response.data), 200
 @app.route('/api/deposit', methods=['GET'])
-def get_items():
+def get_deposits():
     response = supabase.table("Deposits").select("*").execute()
     return jsonify(response.data), 200
 @require_auth
