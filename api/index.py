@@ -134,7 +134,10 @@ def get_goal_deposits(goal_id):
     jwt_token = auth_header.split(" ")[1]
     supabase.postgrest.auth(jwt_token)
     response = supabase.table("Deposits").select("*").eq("goal_id", goal_id).execute()
-    return jsonify(response.data),200
+    if not response.data:
+        return jsonify({"error": "Item not found"}), 404
+    return jsonify(response.data), 200
+
     
 @require_auth
 @app.route('/api/deposit',methods=['POST'])
