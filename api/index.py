@@ -123,6 +123,19 @@ def get_deposits():
     supabase.postgrest.auth(jwt_token)
     response = supabase.table("Deposits").select("*").execute()
     return jsonify(response.data), 200
+
+@app.route('/api/deposit/<goal_id>',method=["GET"])
+def get_goal_deposits(goal_id):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Missing or invalid token"}), 401
+    
+    # 2. Extract the actual JWT string
+    jwt_token = auth_header.split(" ")[1]
+    supabase.postgrest.auth(jwt_token)
+    response = supabase.table("Deposits").select("*").eq("goal_id", goal_id).execute()
+    return jsonify(response.data),200
+    
 @require_auth
 @app.route('/api/deposit',methods=['POST'])
 def add_deposit():
