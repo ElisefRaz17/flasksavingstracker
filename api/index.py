@@ -124,7 +124,7 @@ def get_deposits():
     response = supabase.table("Deposits").select("*").execute()
     return jsonify(response.data), 200
 
-@app.route('/api/deposit/<goal_id>',method=["GET"])
+@app.route('/api/deposit/<goal_id>',methods=["GET"])
 def get_goal_deposits(goal_id):
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
