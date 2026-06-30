@@ -137,7 +137,49 @@ def get_goal_deposits(goal_id):
     if not response.data:
         return jsonify({"error": "Item not found"}), 404
     return jsonify(response.data), 200
-
+@app.route('/api/goals/<goal_id>',methods=["PUT"])
+def update_goal(goal_id):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Missing or invalid token"}), 401
+    
+    # 2. Extract the actual JWT string
+    jwt_token = auth_header.split(" ")[1]
+    supabase.postgrest.auth(jwt_token)
+    data = request.json
+    if not data:
+        return jsonify({"error":"No data provided"}), 400
+    try:
+        response = supabase.table("Goals").update({ 
+        "name": data['name'],
+        "deadline": data.get('deadline'), # Optional
+        "target_amount": data['target_amount'],
+        "user_id":data['user_id']
+        }).eq("id", goal_id).execute()
+        if response.data:
+            return jsonify({"message":"Goal updated successfully","data":response.data}),200
+        else:
+            return jsonify({"error":"Item not found or no changes made"}),404
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
+@app.route('/api/goals/<goal_id>',methods=["DELETE"])
+def delete_goal(goal_id):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Missing or invalid token"}), 401
+    
+    # 2. Extract the actual JWT string
+    jwt_token = auth_header.split(" ")[1]
+    supabase.postgrest.auth(jwt_token)
+    try:
+        response = supabase.table("Goals").delete().eq("id",goal_id)
+        if response.data:
+            return jsonify({"message":"Goal deleted successfully","goal_id":response.data}),200
+        else:
+            return jsonify({"error":"Item not found"}),404
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
+    
     
 @require_auth
 @app.route('/api/deposit',methods=['POST'])
