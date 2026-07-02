@@ -172,7 +172,7 @@ def delete_goal(goal_id):
     jwt_token = auth_header.split(" ")[1]
     supabase.postgrest.auth(jwt_token)
     try:
-        response = supabase.table("Goals").delete().eq("id",goal_id)
+        response = supabase.table("Goals").delete().eq("id",goal_id).execute()
         if response.data:
             return jsonify({"message":"Goal deleted successfully","goal_id":response.data}),200
         else:
