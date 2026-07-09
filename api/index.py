@@ -116,6 +116,7 @@ def get_goals():
     
     access_token = auth_header.split(" ")[1]
     try:
+        supabase.postgrest.auth(access_token)
         user_response = supabase.auth.get_user(access_token)
         user_id = user_response.user.id
         response = supabase.table("Goals").select("*").eq("user_id",user_id).execute()
