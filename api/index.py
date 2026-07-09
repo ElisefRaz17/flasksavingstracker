@@ -111,11 +111,17 @@ def get_goals():
     # jwt_token = auth_header.split(" ")[1]
     # supabase.postgrest.auth(jwt_token)
     auth_header = request.headers.get('Authorization')
-    if auth_header:
-        token = auth_header.split(" ")[1]
-        supabase.auth.set_session(token)
-    response = supabase.table("Goals").select("*").execute()
-    return jsonify(response.data), 200
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    access_token = auth_header.split(" ")[1]
+    try:
+        user = supabase.auth.get_user(access_token)
+        user_id = user.user.id
+        response = supabase.table("Goals").select("*").eq("user_id",user_id).execute()
+        return jsonify(response.data), 200
+    except Exception as e:
+        return jsonify({"error":str(e)}),401
 @app.route('/api/deposit', methods=['GET'])
 def get_deposits():
     auth_header = request.headers.get("Authorization")
