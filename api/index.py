@@ -115,6 +115,7 @@ def get_goals():
         return jsonify({"error": "Unauthorized"}), 401
     
     access_token = auth_header.split(" ")[1]
+    supabase.postgrest.auth(access_token)
     try:
         response = supabase.auth.get_user(access_token)
         user_id = response.user.id
