@@ -116,13 +116,12 @@ def get_goals():
     
     access_token = auth_header.split(" ")[1]
     supabase.postgrest.auth(access_token)
-    try:
-        response = supabase.auth.get_user(access_token)
-        user_id = response.user.id
-        response = supabase.table("Goals").select("*").eq("user_id",user_id).execute()
-        return jsonify(response.data), 200
-    except Exception as e:
-        return jsonify({"error":str(e)}),401
+   
+    response_user = supabase.auth.get_user(access_token)
+    user_id = response_user.user.id
+    response = supabase.table("Goals").select("*").eq("user_id",user_id).execute()
+    return jsonify(response.data), 200
+
 @app.route('/api/deposit', methods=['GET'])
 def get_deposits():
     auth_header = request.headers.get("Authorization")
