@@ -7,6 +7,7 @@ from functools import wraps
 from flask_marshmallow import Marshmallow
 import os
 from schemas.goals import GoalSchema
+import bcrypt
 
 app = Flask(__name__)
 ma = Marshmallow(app)
@@ -32,6 +33,8 @@ def require_auth(f):
             return jsonify({"message":"Token has expired"}),401
         except jwt.InvalidTokenError:
             return jsonify({"message":"Invalid token"}), 401
+        # Authenticate the Supabase client as this user so RLS policies apply
+        supabase.postgrest.auth(token)
         return f(*args, **kwargs)
     return decorated
 @app.errorhandler(Exception)
@@ -46,6 +49,9 @@ def create_item():
     data = request.json
     email = data.get('email')
     password = data.get('password')
+    password_bytes=password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password_bytes,salt)
     full_name = data.get('full_name', '')
     if not email or not password:
         return jsonify({"error": "Email and password are required"}), 400
@@ -55,7 +61,7 @@ def create_item():
         # You can pass additional metadata like full_name into the data dictionary
         user = supabase.auth.sign_up({
             "email": email,
-            "password": password,
+            "password": hashed_password,
             "options": {
                 "data": {"full_name": full_name}
             }
@@ -79,140 +85,88 @@ def get_item(item_id):
     if not response.data:
         return jsonify({"error": "Item not found"}), 404
     return jsonify(response.data[0]), 200
-# @require_auth
 @app.route('/api/goals', methods=['POST'])
+@require_auth
 def create_goal():
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        return jsonify({"error": "Missing or invalid token"}), 401
-    
-    # 2. Extract the actual JWT string
-    jwt_token = auth_header.split(" ")[1]
-    supabase.postgrest.auth(jwt_token)
     try:
         data = request.json
         response = supabase.table("Goals").insert({
             "name": data['name'],
             "deadline": data.get('deadline'), # Optional
             "target_amount": data['target_amount'],
-            "user_id":data['user_id']
+            "user_id": request.user_id
         }).execute()
-    
+
         return jsonify(response.data), 201
     except Exception as e:
         return jsonify({"error":str(e)}), 400
+
 @app.route('/api/goals', methods=['GET'])
+@require_auth
 def get_goals():
-    # auth_header = request.headers.get("Authorization")
-    # if not auth_header or not auth_header.startswith("Bearer "):
-    #     return jsonify({"error": "Missing or invalid token"}), 401
-    
-    # # 2. Extract the actual JWT string
-    # jwt_token = auth_header.split(" ")[1]
-    # supabase.postgrest.auth(jwt_token)
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    access_token = auth_header.split(" ")[1]
     try:
-        supabase.postgrest.auth(access_token)
-        user_response = supabase.auth.get_user(access_token)
-        user_id = user_response.user.id
-        response = supabase.table("Goals").select("*").eq("user_id",user_id).execute()
+        response = supabase.table("Goals").select("*").eq("user_id", request.user_id).execute()
         return jsonify(response.data), 200
     except Exception as e:
         return jsonify({"error":f"Invalid session: {str(e)}"}),403
 
 @app.route('/api/deposit', methods=['GET'])
+@require_auth
 def get_deposits():
-    # auth_header = request.headers.get("Authorization")
-    # if not auth_header or not auth_header.startswith("Bearer "):
-    #     return jsonify({"error": "Missing or invalid token"}), 401
-    
-    # # 2. Extract the actual JWT string
-    # jwt_token = auth_header.split(" ")[1]
-    # supabase.postgrest.auth(jwt_token)
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    access_token = auth_header.split(" ")[1]
     try:
-        supabase.postgrest.auth(access_token)
-        user_response = supabase.auth.get_user(access_token)
-        user_id = user_response.user.id
-        response = supabase.table("Deposits").select("*").eq("user_id",user_id).execute()
+        response = supabase.table("Deposits").select("*").eq("user_id", request.user_id).execute()
         return jsonify(response.data), 200
-        
     except Exception as e:
-            return jsonify({"error":f"Invalid session: {str(e)}"}),403
+        return jsonify({"error":f"Invalid session: {str(e)}"}),403
 
 
 @app.route('/api/deposit/<goal_id>',methods=["GET"])
+@require_auth
 def get_goal_deposits(goal_id):
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        return jsonify({"error": "Missing or invalid token"}), 401
-    
-    # 2. Extract the actual JWT string
-    jwt_token = auth_header.split(" ")[1]
-    supabase.postgrest.auth(jwt_token)
-    response = supabase.table("Deposits").select("*").eq("goal_id", goal_id).execute()
+    response = supabase.table("Deposits").select("*").eq("goal_id", goal_id).eq("user_id", request.user_id).execute()
     if not response.data:
         return jsonify({"error": "Item not found"}), 404
     return jsonify(response.data), 200
+
 @app.route('/api/goals/<goal_id>',methods=["PUT"])
+@require_auth
 def update_goal(goal_id):
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        return jsonify({"error": "Missing or invalid token"}), 401
-    
-    # 2. Extract the actual JWT string
-    jwt_token = auth_header.split(" ")[1]
-    supabase.postgrest.auth(jwt_token)
     data = request.json
     if not data:
         return jsonify({"error":"No data provided"}), 400
     try:
-        response = supabase.table("Goals").update({ 
+        response = supabase.table("Goals").update({
         "name": data['name'],
         "deadline": data.get('deadline'), # Optional
         "target_amount": data['target_amount'],
-        "user_id":data['user_id']
-        }).eq("id", goal_id).execute()
+        }).eq("id", goal_id).eq("user_id", request.user_id).execute()
         if response.data:
             return jsonify({"message":"Goal updated successfully","data":response.data}),200
         else:
             return jsonify({"error":"Item not found or no changes made"}),404
     except Exception as e:
         return jsonify({"error":str(e)}), 500
+
 @app.route('/api/goals/<goal_id>',methods=["DELETE"])
+@require_auth
 def delete_goal(goal_id):
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        return jsonify({"error": "Missing or invalid token"}), 401
-    
-    # 2. Extract the actual JWT string
-    jwt_token = auth_header.split(" ")[1]
-    supabase.postgrest.auth(jwt_token)
     try:
-        response = supabase.table("Goals").delete().eq("id",goal_id).execute()
+        response = supabase.table("Goals").delete().eq("id",goal_id).eq("user_id", request.user_id).execute()
         if response.data:
             return jsonify({"message":"Goal deleted successfully","goal_id":response.data}),200
         else:
             return jsonify({"error":"Item not found"}),404
     except Exception as e:
         return jsonify({"error":str(e)}), 500
-    
-    
-@require_auth
+
+
 @app.route('/api/deposit',methods=['POST'])
+@require_auth
 def add_deposit():
     data = request.json
     response = supabase.table("Deposits").insert({
         "goal_id": data['goal_id'],
-        "user_id":data['user_id'],
+        "user_id": request.user_id,
         "amount":data["amount"],
         "note":data.get("note")
     }).execute()
