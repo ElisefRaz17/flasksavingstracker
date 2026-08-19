@@ -25,34 +25,15 @@ logging.basicConfig(level=logging.ERROR)
 def login_handler():
     data = request.get_json()
     access_token = data.get('access_token')
-    refresh_token = data.get('refresh_token')
+    if not access_token:
+        return jsonify({"error": "No access token provided"}), 400
 
-    response = make_response(jsonify({"status": "success"}))
-    
-    # Store sensitive refresh token in an HttpOnly, Secure cookie
-    response.set_cookie(
-        'sb_flask_refresh_token',
-        refresh_token,
-        httponly=True,
-        secure=False,  # Set to True in production with HTTPS
-        samesite='Lax',
-        max_age=60 * 60 * 24 * 7  # 1 week
-    )
-    # Return short-lived access token directly in JSON body
-    response.json = {"access_token": access_token, "refresh_token": refresh_token}
-    return response
-
-@app.route('/api/refresh-session', methods=['GET'])
-def refresh_session():
-    refresh_token = request.cookies.get('sb_flask_refresh_token')
-    if not refresh_token:
-        return jsonify({"error": "No session found"}), 401
-
-    # In production, validate or exchange refresh_token with Supabase GoTrue endpoint here
+    # Perform backend validation or set secure HTTP-only cookies here
     return jsonify({
-        "access_token": "YOUR_NEW_OR_VALIDATED_ACCESS_TOKEN",
-        "refresh_token": refresh_token
-    })
+        "status": "success", 
+        "message": "Session handled securely on backend"
+    }), 200
+
 def require_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
