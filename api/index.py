@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from database import supabase
 import logging
@@ -10,7 +10,7 @@ from schemas.goals import GoalSchema
 
 app = Flask(__name__)
 ma = Marshmallow(app)
-CORS(app)
+CORS(app, supports_credentials=True,origins=["http://localhost:4200"])
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
@@ -21,6 +21,38 @@ SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
 _jwks_client = jwt.PyJWKClient(f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json") if SUPABASE_URL else None
 goal_schema = GoalSchema()
 logging.basicConfig(level=logging.ERROR)
+@app.route('/api/login-handler', methods=['POST'])
+def login_handler():
+    data = request.get_json()
+    access_token = data.get('access_token')
+    refresh_token = data.get('refresh_token')
+
+    response = make_response(jsonify({"status": "success"}))
+    
+    # Store sensitive refresh token in an HttpOnly, Secure cookie
+    response.set_cookie(
+        'sb_flask_refresh_token',
+        refresh_token,
+        httponly=True,
+        secure=False,  # Set to True in production with HTTPS
+        samesite='Lax',
+        max_age=60 * 60 * 24 * 7  # 1 week
+    )
+    # Return short-lived access token directly in JSON body
+    response.json = {"access_token": access_token, "refresh_token": refresh_token}
+    return response
+
+@app.route('/api/refresh-session', methods=['GET'])
+def refresh_session():
+    refresh_token = request.cookies.get('sb_flask_refresh_token')
+    if not refresh_token:
+        return jsonify({"error": "No session found"}), 401
+
+    # In production, validate or exchange refresh_token with Supabase GoTrue endpoint here
+    return jsonify({
+        "access_token": "YOUR_NEW_OR_VALIDATED_ACCESS_TOKEN",
+        "refresh_token": refresh_token
+    })
 def require_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
