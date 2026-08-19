@@ -12,7 +12,13 @@ app = Flask(__name__)
 ma = Marshmallow(app)
 CORS(app)
 
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
+# Supabase projects on the newer API key system sign tokens with an
+# asymmetric key (ES256/RS256) instead of the legacy shared HS256 secret.
+# PyJWKClient fetches/caches the current public signing key(s) so tokens
+# verify correctly regardless of which signing method the project uses.
+_jwks_client = jwt.PyJWKClient(f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json") if SUPABASE_URL else None
 goal_schema = GoalSchema()
 logging.basicConfig(level=logging.ERROR)
 def require_auth(f):
@@ -26,7 +32,14 @@ def require_auth(f):
         if not token:
             return jsonify({"message":"Missing authentication token"}), 401
         try:
-            payload = jwt.decode(token, SUPABASE_JWT_SECRET, algorithms=["HS256"], audience="authenticated")
+            alg = jwt.get_unverified_header(token).get("alg")
+            if alg == "HS256":
+                signing_key = SUPABASE_JWT_SECRET
+            elif _jwks_client:
+                signing_key = _jwks_client.get_signing_key_from_jwt(token).key
+            else:
+                raise jwt.InvalidTokenError("No signing key available")
+            payload = jwt.decode(token, signing_key, algorithms=["HS256", "ES256", "RS256"], audience="authenticated")
             request.user_id = payload.get("sub")
         except jwt.ExpiredSignatureError:
             return jsonify({"message":"Token has expired"}),401
