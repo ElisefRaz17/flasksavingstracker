@@ -10,7 +10,7 @@ from schemas.goals import GoalSchema
 
 app = Flask(__name__)
 ma = Marshmallow(app)
-CORS(app, supports_credentials=True,origins=["http://localhost:4200"])
+CORS(app)
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
