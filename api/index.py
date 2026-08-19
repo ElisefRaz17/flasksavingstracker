@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
+from werkzeug.exceptions import HTTPException
 from database import supabase
 import logging
 import jwt
@@ -10,7 +11,20 @@ from schemas.goals import GoalSchema
 
 app = Flask(__name__)
 ma = Marshmallow(app)
-CORS(app)
+FRONTEND_ORIGINS = ["https://angularsavingstracker.vercel.app", "http://localhost:4200"]
+CORS(app, supports_credentials=True, origins=FRONTEND_ORIGINS)
+REFRESH_COOKIE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+
+def set_refresh_cookie(response, refresh_token):
+    response.set_cookie(
+        "refresh_token",
+        refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="None",
+        max_age=REFRESH_COOKIE_MAX_AGE,
+        path="/api",
+    )
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
@@ -23,16 +37,45 @@ goal_schema = GoalSchema()
 logging.basicConfig(level=logging.ERROR)
 @app.route('/api/login-handler', methods=['POST'])
 def login_handler():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     access_token = data.get('access_token')
-    if not access_token:
-        return jsonify({"error": "No access token provided"}), 400
+    refresh_token = data.get('refresh_token')
+    if not access_token or not refresh_token:
+        return jsonify({"error": "Access token and refresh token are required"}), 400
 
-    # Perform backend validation or set secure HTTP-only cookies here
-    return jsonify({
-        "status": "success", 
+    response = jsonify({
+        "status": "success",
         "message": "Session handled securely on backend"
-    }), 200
+    })
+    set_refresh_cookie(response, refresh_token)
+    return response, 200
+
+@app.route('/api/refresh-session', methods=['GET'])
+def refresh_session():
+    refresh_token = request.cookies.get('refresh_token')
+    if not refresh_token:
+        return jsonify({"error": "No refresh token"}), 401
+
+    try:
+        auth_response = supabase.auth.refresh_session(refresh_token)
+        session = auth_response.session
+    except Exception:
+        session = None
+    if not session:
+        return jsonify({"error": "Invalid or expired refresh token"}), 401
+
+    response = jsonify({
+        "access_token": session.access_token,
+        "refresh_token": session.refresh_token,
+    })
+    set_refresh_cookie(response, session.refresh_token)
+    return response, 200
+
+@app.route('/api/logout', methods=['POST'])
+def logout_handler():
+    response = jsonify({"status": "success"})
+    response.delete_cookie("refresh_token", path="/api")
+    return response, 200
 
 def require_auth(f):
     @wraps(f)
@@ -64,9 +107,11 @@ def require_auth(f):
     return decorated
 @app.errorhandler(Exception)
 def handle_exception(e):
-    # Pass the actual error message to the logs
+    # Let normal HTTP errors (404, 400, 401, ...) pass through unchanged;
+    # only rewrite genuine unhandled exceptions as a clean 500 JSON body.
+    if isinstance(e, HTTPException):
+        return e
     app.logger.error(f"Unhandled Exception: {e}", exc_info=True)
-    # Return a clean JSON response instead of a generic 500
     return jsonify(error="Internal Server Error", message=str(e)), 500
 # CREATE
 @app.route('/api/users', methods=['POST'])
