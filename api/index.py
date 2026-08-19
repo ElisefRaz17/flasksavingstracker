@@ -7,7 +7,6 @@ from functools import wraps
 from flask_marshmallow import Marshmallow
 import os
 from schemas.goals import GoalSchema
-import bcrypt
 
 app = Flask(__name__)
 ma = Marshmallow(app)
