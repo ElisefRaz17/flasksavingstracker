@@ -49,9 +49,6 @@ def create_item():
     data = request.json
     email = data.get('email')
     password = data.get('password')
-    password_bytes=password.encode('utf-8')
-    salt = bcrypt.gensalt()
-    hashed_password = bcrypt.hashpw(password_bytes,salt)
     full_name = data.get('full_name', '')
     if not email or not password:
         return jsonify({"error": "Email and password are required"}), 400
@@ -61,7 +58,7 @@ def create_item():
         # You can pass additional metadata like full_name into the data dictionary
         user = supabase.auth.sign_up({
             "email": email,
-            "password": hashed_password,
+            "password": password,
             "options": {
                 "data": {"full_name": full_name}
             }
