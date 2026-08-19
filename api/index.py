@@ -19,10 +19,10 @@ def require_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         token = None
-        if 'Authorization' in request.headers:
-            auth_header = request.headers['Authorization'].split(" ")
-            if len(auth_header) == 2 and auth_header[0] == "Bearer":
-                token = auth_header[1]
+        auth_header = request.headers.get('Authorization', '')
+        parts = auth_header.split(" ", 1)
+        if len(parts) == 2 and parts[0].lower() == "bearer" and parts[1]:
+            token = parts[1].strip()
         if not token:
             return jsonify({"message":"Missing authentication token"}), 401
         try:
