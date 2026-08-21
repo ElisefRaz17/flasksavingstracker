@@ -15,16 +15,24 @@ FRONTEND_ORIGINS = ["https://angularsavingstracker.vercel.app", "http://localhos
 CORS(app, supports_credentials=True, origins=FRONTEND_ORIGINS)
 REFRESH_COOKIE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
 
-def set_refresh_cookie(response, refresh_token):
-    response.set_cookie(
-        "refresh_token",
-        refresh_token,
+def set_refresh_cookie(response, access_token):
+    # response.set_cookie(
+    #     "refresh_token",
+    #     refresh_token,
+    #     httponly=True,
+    #     secure=True,
+    #     samesite="None",
+    #     max_age=REFRESH_COOKIE_MAX_AGE,
+    #     path="/api",
+    # )
+        response.set_cookie(
+        "sb_access_token",
+        access_token,
         httponly=True,
         secure=True,
-        samesite="None",
-        max_age=REFRESH_COOKIE_MAX_AGE,
-        path="/api",
+        samesite="Lax"
     )
+
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
@@ -47,7 +55,7 @@ def login_handler():
         "status": "success",
         "message": "Session handled securely on backend"
     })
-    set_refresh_cookie(response, refresh_token)
+    set_refresh_cookie(response, access_token)
     return response, 200
 
 @app.route('/api/refresh-session', methods=['GET'])
