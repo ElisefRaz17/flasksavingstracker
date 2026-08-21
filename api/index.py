@@ -203,6 +203,17 @@ def get_goal_deposits(goal_id):
         return jsonify({"error": "Item not found"}), 404
     return jsonify(response.data), 200
 
+@app.route('/api/goals/<goal_id>', methods=["GET"])
+@require_auth
+def get_goal(goal_id):
+    try:
+        response = supabase.table("Goals").select("*").eq("id", goal_id).eq("user_id", request.user_id).execute()
+        if not response.data:
+            return jsonify({"error": "Item not found"}), 404
+        return jsonify(response.data[0]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/goals/<goal_id>',methods=["PUT"])
 @require_auth
 def update_goal(goal_id):
